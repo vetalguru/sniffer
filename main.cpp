@@ -17,6 +17,44 @@ void handler(int signum = 0)
     done = 0;
 }
 
+bool setPromiscModeOn(const int aSocket, const std::string& aInterface)
+{
+    if(aSocket <= 0 || aInterface.empty())
+        return false;
+
+    // Get interface flags
+    struct ifreq ifr;
+    strcpy(ifr.ifr_name, aInterface.c_str());
+    if(ioctl(aSocket, SIOCGIFFLAGS, &ifr) < 0)
+        return false;
+
+    // Set flag PROMISC as ON
+    ifr.ifr_flags |= IFF_PROMISC;
+    if(ioctl(aSocket, SIOCSIFFLAGS, &ifr) < 0)
+        return false;
+
+    return true;
+}
+
+bool setPromiscModeOff(const int aSocket, const std::string& aInterface)
+{
+    if(aSocket <= 0 || aInterface.empty())
+        return false;
+
+    // Get interface flags
+    struct ifreq ifr;
+    strcpy(ifr.ifr_name, aInterface.c_str());
+    if(ioctl(aSocket, SIOCGIFFLAGS, &ifr) < 0)
+        return false;
+
+    // Set flag PROMISC as OFF
+    ifr.ifr_flags &= (~IFF_PROMISC);
+    if(ioctl(aSocket, SIOCSIFFLAGS, &ifr) < 0)
+        return false;
+
+    return true;
+}
+
 int main(int argc, char* argv[])
 {
     if (argc < 2)
@@ -36,18 +74,11 @@ int main(int argc, char* argv[])
         return 0;
     }
 
-    // Get interface flags
-    struct ifreq ifr;
-    strcpy(ifr.ifr_name, argv[1]);
-    if(ioctl(raw_socket, SIOCGIFFLAGS, &ifr) < 0)
-          return false;
-
-    // Set flag PROMISC as ON
-    ifr.ifr_flags |= IFF_PROMISC;
-    if(ioctl(raw_socket, SIOCSIFFLAGS, &ifr) < 0)
+    if(!setPromiscModeOn(raw_socket, std::string(argv[1])))
     {
-          perror("IOCTL SET FLAGS ERROR");
-          return false;
+        perror("SET PROMICS MODE ON");
+        close(raw_socket);
+        return 0;
     }
 
     std::cout << "Listening on " << argv[1] << std::endl;
@@ -60,12 +91,11 @@ int main(int argc, char* argv[])
             write(STDOUT_FILENO, buff, dataSize);
     }
 
-    // Set flag PROMISC as OFF
-    ifr.ifr_flags &= (~IFF_PROMISC);
-    if (ioctl(raw_socket, SIOCSIFFLAGS, &ifr) < 0)
+    if(!setPromiscModeOff(raw_socket, std::string(argv[1])))
     {
-          perror("IOCTL SET FLAGS ERROR");
-          return 0;
+        perror("SET PROMISC MODE OFF");
+        close(raw_socket);
+        return 0;
     }
 
     close(raw_socket);
