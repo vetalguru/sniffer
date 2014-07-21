@@ -6,8 +6,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/ioctl.h>
-
 #include <iostream>
+
+#include "EthernetFrame.h"
 
 #define BUFFER_SIZE 65536
 
@@ -83,12 +84,30 @@ int main(int argc, char* argv[])
 
     std::cout << "Listening on " << argv[1] << std::endl;
 
-    char buff[BUFFER_SIZE];
+    unsigned char buff[BUFFER_SIZE];
+    EthernetFrame frame;
     while(done)
     {
         ssize_t dataSize = read(raw_socket, buff, sizeof(buff));
         if(dataSize != -1)
-            write(STDOUT_FILENO, buff, dataSize);
+        {
+            frame.clear();
+            frame.decodeFrame(buff, dataSize);
+            printf("Dect MAC: %x-%x-%x-%x-%x-%x \t", frame.destinationMACAddress()[0],
+                                                     frame.destinationMACAddress()[1],
+                                                     frame.destinationMACAddress()[2],
+                                                     frame.destinationMACAddress()[3],
+                                                     frame.destinationMACAddress()[4],
+                                                     frame.destinationMACAddress()[5]);
+
+            printf("Recip MAC: %x-%x-%x-%x-%x-%x\n", frame.recipientMACAddress()[0],
+                                                     frame.recipientMACAddress()[1],
+                                                     frame.recipientMACAddress()[2],
+                                                     frame.recipientMACAddress()[3],
+                                                     frame.recipientMACAddress()[4],
+                                                     frame.recipientMACAddress()[5]);
+
+        }
     }
 
     if(!setPromiscModeOff(raw_socket, std::string(argv[1])))
