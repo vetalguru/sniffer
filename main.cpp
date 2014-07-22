@@ -7,8 +7,10 @@
 #include <string.h>
 #include <sys/ioctl.h>
 #include <iostream>
+#include <arpa/inet.h>
 
 #include "EthernetFrame.h"
+#include "IPv4.h"
 
 #define BUFFER_SIZE 65536
 
@@ -86,6 +88,7 @@ int main(int argc, char* argv[])
 
     unsigned char buff[BUFFER_SIZE];
     EthernetFrame frame;
+    IPv4 ip;
     while(done)
     {
         ssize_t dataSize = read(raw_socket, buff, sizeof(buff));
@@ -93,20 +96,18 @@ int main(int argc, char* argv[])
         {
             frame.clear();
             frame.decodeFrame(buff, dataSize);
-            printf("Dect MAC: %x-%x-%x-%x-%x-%x \t", frame.destinationMACAddress()[0],
-                                                     frame.destinationMACAddress()[1],
-                                                     frame.destinationMACAddress()[2],
-                                                     frame.destinationMACAddress()[3],
-                                                     frame.destinationMACAddress()[4],
-                                                     frame.destinationMACAddress()[5]);
+            if(frame.frameType() == 8)
+            {
+                if(!ip.decodePackage(frame.frameData()))
+                    continue;
 
-            printf("Recip MAC: %x-%x-%x-%x-%x-%x\n", frame.recipientMACAddress()[0],
-                                                     frame.recipientMACAddress()[1],
-                                                     frame.recipientMACAddress()[2],
-                                                     frame.recipientMACAddress()[3],
-                                                     frame.recipientMACAddress()[4],
-                                                     frame.recipientMACAddress()[5]);
-
+                struct in_addr sAddr, dAddr;
+                sAddr.s_addr = ip.sourceAddress();
+                char* ipSource = inet_ntoa(sAddr);
+                dAddr.s_addr = ip.destinationAddress();
+                char* ipDestination = inet_ntoa(dAddr);
+                printf("Source: %s  Destination: %s\n", ipSource, ipDestination);
+            }
         }
     }
 
