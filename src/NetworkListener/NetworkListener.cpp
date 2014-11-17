@@ -7,10 +7,17 @@
 #include <unistd.h>
 #include <string.h>
 
+#include "IPv4.h"
+
+#include <iostream>
+
+#define BUFFER_SIZE 65535
+
 
 NetworkListener::NetworkListener(const std::string& aInterface)
     : m_socket(0)
     , m_interface(aInterface)
+    , m_mustBeStopped(false)
 {
 }
 
@@ -45,28 +52,49 @@ bool NetworkListener::start()
         close(m_socket);
         return false;
     }
-}
 
-bool NetworkListener::stop()
-{
-    if(!m_socket)
+    std::cout << "Sniffer was started" << std::endl;
+
+    m_mustBeStopped = false;
+
+    unsigned char buff[BUFFER_SIZE];
+    IPv4 ip;
+    while(!m_mustBeStopped)
     {
-        perror("NOT STARTED");
-        return false;
+        ssize_t dataSize = read(m_socket, buff, sizeof(buff));
+        if(dataSize != -1)
+        {
+            // NEED TO USE CHAIN HERE
+        }
     }
 
-    if(!setPromiscModeOff())
+    if(m_mustBeStopped)
     {
-        perror("SET PROMICS MODE OFF ERROR");
+        if(!m_socket)
+        {
+            perror("NOT STARTED");
+            return false;
+        }
+
+        if(!setPromiscModeOff())
+        {
+            perror("SET PROMICS MODE OFF ERROR");
+            close(m_socket);
+            return false;
+        }
+
         close(m_socket);
-        return false;
-    }
 
-    close(m_socket);
+        std::cout << "Sniffer was stopped" << std::endl;
+    }
 
     return true;
 }
 
+void NetworkListener::stop()
+{
+    m_mustBeStopped = true;
+}
 
 bool NetworkListener::setPromiscModeOn()
 {

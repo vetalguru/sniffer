@@ -13,7 +13,7 @@ public:
     ~NetworkListener();
 
     bool start();
-    bool stop();
+    void stop();
 
 private:
     bool setPromiscModeOn();
@@ -22,6 +22,8 @@ private:
 private:
     int m_socket;
     std::string m_interface;
+
+    bool m_mustBeStopped;
 };
 
 

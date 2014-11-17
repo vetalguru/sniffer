@@ -2,7 +2,6 @@
 #include <iostream>
 
 #include "NetworkListener.h"
-#include "EthernetFrame.h"
 #include "IPv4.h"
 
 #define BUFFER_SIZE 65536
